@@ -46,7 +46,42 @@ the following script:
 
 This will produce `xls` files in the current directory for each station in the form `HRC2_2013-06-06_06:00.xls`, encoding the originating station and the requested date/time.
 
-Note that station obsevations are not available exactly on the hour, in the `BAWC2_2013-06-06_06:00.xls` file, the last observation is at 5:22 AM (GMT).
+Note that station obsevations are not available exactly on the hour, in my `BAWC2_2013-06-06_06:00.xls` file, the last observation is at 5:22 AM (GMT).
     
 
-      
+Converting to obs format
+------------------------
+
+The second step before the observations can be used by the [fmda_julia](http://github.com/vejmelka/mfmda_julia "fmda_julia") code is to convert the data into `obs` format.  The `obs` format aggregates possibly multi-day observations and also adds information on the variance of the observations to the observations themselves.
+
+Currently information on the variance of the observations is not available from the network, thus a user-constructed table is used in its place.  An example table is
+in `examples/example_obs_var_table`.  The table format has the observed quantity name in the first column and the variance (in appropriate units) in the second colum separated by a comma:
+
+    FM, 1e-4
+    RELH, 2.5e-3
+    TMP, 0.25
+
+This information will be injected into the `obs` files which will aggregate all observations in all `xls` files available for each station.
+
+Run the following to obtain an `obs` file for each station containing the currently downloaded observations:
+
+    ./extract_observations.py example/example_colorado_stations example/example_obs_var_table
+
+Now the working directory will contain one obs file per station.  The obs files contain records of four lines each in the form:
+
+    2013-06-05_21:56 GMT
+    TMP, RELH, SKNT, GUST, DRCT, SOLR, PREC, FT, FM, PEAK, PDIR, VOLT, DWP
+    7.8, 0.97, 275.35, 4.0, 100.0, 431.0, 13.21, 11.7, 0.18, 4.0, 79.0, 14.1, 7.3
+    0.25, 0.0025, nan, nan, nan, nan, nan, nan, 0.0001, nan, nan, nan, nan
+
+The first line is the timestamp in ESMF format with the time zone.  The second line contains the quantity names, the third line the observed values and the fourth line the variances of each observation (retrieved from `example_obs_var_table`).
+
+Note that unknown variances are marked with a `nan`.  Note also that the [fmda_julia](http://github.com/vejmelka/mfmda_julia "fmda_julia") code requires the variance of FM to be a valid variance.
+
+The `info` and `obs` files can then be directly used with the [fmda_julia](http://github.com/vejmelka/mfmda_julia "fmda_julia") as detailed in its documentation.
+
+
+TODO
+----
+
+When station variances are available from some source, this code needs to be updated to properly assign variances to observations depending on the source station.
