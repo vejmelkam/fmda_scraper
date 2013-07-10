@@ -23,7 +23,8 @@ in Colorado):
 
     ./describe_stations.sh example/example_colorado_stations
 
-This will produce many ''*.info'' files in the current directory, for example ''BAWC2.info'', which contain the following data
+This will one ''.info'' file per station in the station LIST in the current directory, for example
+''BAWC2.info''.  Each file contains data similar to the following:
 
     # Info created by scrape_stations.py on 2013-06-19 18:19:07.746994
     BAWC2
@@ -54,8 +55,7 @@ Converting to obs format
 
 The second step before the observations can be used by the [fmda_julia](http://github.com/vejmelka/mfmda_julia "fmda_julia") code is to convert the data into `obs` format.  The `obs` format aggregates possibly multi-day observations and also adds information on the variance of the observations to the observations themselves.
 
-Currently information on the variance of the observations is not available from the network, thus a user-constructed table is used in its place.  An example table is
-in `examples/example_obs_var_table`.  The table format has the observed quantity name in the first column and the variance (in appropriate units) in the second colum separated by a comma:
+Currently information on the variance of the observations is not available from the network, thus a user-constructed table is used in its place.  An example table is in `examples/example_obs_var_table`.  The table format has the observed quantity name in the first column and the variance (in appropriate units) in the second colum separated by a comma:
 
     FM, 1e-4
     RELH, 2.5e-3
