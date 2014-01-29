@@ -5,6 +5,7 @@ Prerequisites
 -------------
   * python 2.6 or 2.7
   * [xlrd](https://pypi.python.org/pypi/xlrd "xlrd") python package
+  * BeautifulSoup 4
 
 Description
 -----------
