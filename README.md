@@ -9,7 +9,8 @@ Prerequisites
 
 Description
 -----------
-A data scraper that retrieves RAWS observations from the MesoWest website and stores them in a format suitable for the [fmda_julia](http://github.com/vejmelka/mfmda_julia "fmda_julia") code.  The MesoWest RAWS network observations are available hourly.
+
+A data scraper that retrieves RAWS observations from the MesoWest website and stores them in a format suitable for the [fmda](http://github.com/vejmelkam/fmda "fmda") python code.  The MesoWest RAWS network observations are available hourly.
 
 This code has two main functions:
   * retrieve information about a particular RAWS station, including location, elevation and observed quantities
@@ -24,7 +25,7 @@ in Colorado):
 
     ./describe_stations.sh example/example_colorado_stations
 
-This will one ''.info'' file per station in the station LIST in the current directory, for example
+This will create one ''.info'' file per station in the station LIST in the current directory, for example
 ''BAWC2.info''.  Each file contains data similar to the following:
 
     # Info created by scrape_stations.py on 2013-06-19 18:19:07.746994
@@ -38,7 +39,7 @@ This will one ''.info'' file per station in the station LIST in the current dire
     # Station sensors
     TMP, RELH, SKNT, GUST, DRCT, QFLG, VOLT, FT, FM, TLKE, PEAK, PDIR, PREC, SOLR, ITIM, UTIM, DWP
 
-Lines beginning with # are comments and skipped by the (simple) parser.
+Lines beginning with # are comments and skipped by the parser in the [fmda](http://github.com/vejmelkam/fmda "fmda") code.
 
 
 To retrieve station observations for the above list of stations for the 24 hours up to 5th of June 2013 6:00 AM (all times are in **GMT**), run
@@ -54,7 +55,7 @@ Note that station obsevations are not available exactly on the hour, in my `BAWC
 Converting to obs format
 ------------------------
 
-The second step before the observations can be used by the [fmda_julia](http://github.com/vejmelka/mfmda_julia "fmda_julia") code is to convert the data into `obs` format.  The `obs` format aggregates possibly multi-day observations and also adds information on the variance of the observations to the observations themselves.
+The second step before the observations can be used by the [fmda](http://github.com/vejmelkam/fmda "fmda") code is to convert the data into `obs` format.  The `obs` format aggregates possibly multi-day observations and also adds information on the variance of the observations to the observations themselves.
 
 Currently information on the variance of the observations is not available from the network, thus a user-constructed table is used in its place.  An example table is in `examples/example_obs_var_table`.  The table format has the observed quantity name in the first column and the variance (in appropriate units) in the second colum separated by a comma:
 
@@ -77,9 +78,9 @@ Now the working directory will contain one obs file per station.  The obs files 
 
 The first line is the timestamp in ESMF format with the time zone.  The second line contains the quantity names, the third line the observed values and the fourth line the variances of each observation (retrieved from `example_obs_var_table`).
 
-Note that unknown variances are marked with a `nan`.  Note also that the [fmda_julia](http://github.com/vejmelka/mfmda_julia "fmda_julia") code requires the variance of FM to be a valid variance.
+Note that unknown variances are marked with a `nan`.  Note also that the [fmda](http://github.com/vejmelkam/fmda "fmda") code requires the variance of FM to be a valid variance.
 
-The `info` and `obs` files can then be directly used with the [fmda_julia](http://github.com/vejmelka/mfmda_julia "fmda_julia") as detailed in its documentation.
+The `info` and `obs` files can then be directly used with the [fmda](http://github.com/vejmelkam/fmda "fmda" as detailed in its documentation.
 
 
 TODO
