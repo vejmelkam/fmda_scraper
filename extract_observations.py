@@ -6,61 +6,7 @@ import string
 import glob
 import pytz
 from datetime import datetime
-
-
-skip_vars = [ 'QFLG' ]
-process_vars = { 'FM' : lambda x: 0.01 * x,  # fuel moisture comes in gm water /100 gm pine wood
-                 'TMPF' : lambda x: 273.15 + x,  # we actually download TMPF in degrees C in the scraper
-                 'RELH' : lambda x : 0.01 * x,  # relative humidity comes in percent
-                 'SKNT' : lambda x : 273.15 + x # skin temperature is also in deg C
-               }
-
-
-def load_station_data(station_file):
-    """
-    Load all available fuel moisture data from the station measurement file
-    in xls format.
-    """
-    # load the worksheet
-    x = xlrd.open_workbook(station_file)
-    s = x.sheet_by_index(0)
-    
-    # find the order of the variables
-    var_ord = []
-    cell_ord = []
-    obs = {}
-    for i in range(1,s.ncols):
-        cv = s.cell_value(0,i).strip().split(" ")[0]
-        if len(cv) > 0 and cv not in skip_vars:
-            var_ord.append(cv)
-            cell_ord.append(i)
-            if cv not in process_vars:
-                process_vars[cv] = lambda x: x
-
-    # now read 24 entries starting at 
-    i = 1
-    gmt_tz = pytz.timezone('GMT')
-    while i < s.nrows:
-        # parse the time stamp string
-        try:
-            tstamp = gmt_tz.localize(datetime.strptime(s.cell_value(i,0), '%m-%d-%Y %H:%M %Z'))
-        except ValueError:
-            break
-
-        # parse the variables in order
-        obs_i = []
-        for j in range(len(cell_ord)):
-            try:
-                val = process_vars[var_ord[j]](float(s.cell_value(i,cell_ord[j])))
-                obs_i.append((var_ord[j], val))
-            except ValueError:
-                pass
-
-        obs[tstamp] = obs_i
-
-        i += 1
-
-    return obs
+from mwest_utils import decode_obs_xls
 
 
 if __name__ == "__main__":
@@ -91,8 +37,9 @@ if __name__ == "__main__":
         # read in each file and parse the contents
         obs = {}
         for fname in fnames:
-            obs_i = load_station_data(fname)
-            obs.update(obs_i)
+            with open(fname, 'r') as f:
+                obs_i = decode_obs_xls(f.read())
+                obs.update(obs_i)
 
         # write out the data in a neat csv file
         with open("%s.obs" % sid, "w") as f:

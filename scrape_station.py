@@ -2,12 +2,13 @@
 
 from bs4 import BeautifulSoup
 import sys
-import urllib
 import time
 import argparse
 from datetime import datetime
 import string
 import os
+from mwest_utils import decode_obs_xls,retrieve_web_page
+
 
 # mesowest list of stations
 mesowest_station_url = 'http://mesowest.utah.edu/cgi-bin/droman/download_ndb.cgi?stn=%s'
@@ -21,16 +22,6 @@ tstamp_fmt = '%Y-%m-%d_%H:%M'
 # renaming dictionary handling differences between variable names in xls files from Mesowest
 # and in the variable listing
 renames = { 'TMPF' : 'TMP', 'DWPF' : 'DWP' }
-
-
-def retrieve_web_page(addr):
-    """
-    Retrieve the web page and return it as a string.
-    """
-    f = urllib.urlopen(addr)
-    content = f.read()
-    f.close()
-    return content
 
 
 def extract_stations(table):
@@ -47,17 +38,17 @@ def extract_stations(table):
     rows = table.find_all('tr')
     for r in rows:
         cells = r.find_all('td')
-    	if len(cells) == 5:
-	        # we have five cells, retrieve the text and add to list
+        if len(cells) == 5:
+            # we have five cells, retrieve the text and add to list
             val = [ c.getText() for c in cells ]
-    	    stations.append(dict(zip(name,val)))
+            stations.append(dict(zip(name,val)))
 
-    	if len(cells) == 6:
-    	    # we have six cells, second is WIMS id, we throw that out
+        if len(cells) == 6:
+            # we have six cells, second is WIMS id, we throw that out
             val = [ c.getText() for c in cells ]
             del val[1]
             stations.append(dict(zip(name,val)))
-	
+
     return stations
 
 
@@ -85,7 +76,7 @@ def get_station_info(station_info):
     station_info['wims'] = d['WIMS ID']
     station_info['mnet'] = d['MNET']
     station_info['name'] = d['NAME']
-	   
+
 
 def observes_variables(station_info, req_vars):
     """
@@ -111,7 +102,7 @@ def find_and_list_stations(args):
     # dictionary to convert station names to MesoWest network ids
     network_to_mesowest_id = { 'RAWS' : 2, 'NWS' : 1 }
     net_id = network_to_mesowest_id[args.network]
-    
+
     # retrieve the network page
     content = retrieve_web_page(mesowest_net_url % net_id)
     soup = BeautifulSoup(content)
@@ -191,6 +182,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--tstamp', metavar='T', type=parse_dt, dest='tstamp', help='end date/time for the downloaded range, dl only (fmt=Y-m-d_H:M)')
     parser.add_argument('-f', '--fmt', metavar='M', type=str, default='xls', dest='fmt', help='(dl only) download in what format? (xls/csv/xml)')
     parser.add_argument('-l', '--line', action='store_const', const='terse', default='loose', dest='info_fmt', help='(info only) print information in terse format')
+    parser.add_argument('-o', '--ovt', metavar='O', type=str, dest='obs_var_table', help='observation variance table to use for dumping observations to stdout directly')
     
     args = parser.parse_args()
 
@@ -204,6 +196,7 @@ if __name__ == '__main__':
     elif args.command == 'info':
         si = { 'code' : args.station_code }
         get_station_info(si)
+        nnv = [ renames[x] if x in renames else x for x in si['vlist'] ]
         if args.info_fmt == 'loose':
             print("# Info created by scrape_stations.py on %s" % str(datetime.now()))
             print(args.station_code)
@@ -214,18 +207,27 @@ if __name__ == '__main__':
             print("# Elevation (meters)")
             print("%g" % si['elevation'])
             print("# Station sensors")
-            nnv = [ renames[x] if x in renames else x for x in si['vlist'] ]
             print(string.join(nnv, ", "))
         else:
-            print(si['code'] + ',' + str(si['lat']) + ',' + str(si['lon']) + ',' + str(si['elevation']))
+          print(",".join([si['code'], string.strip(si['name'].replace(',', ' ')), str(si['lat']), str(si['lon']), str(si['elevation']), ":".join(nnv)]))
 
     elif args.command == 'dl':
-        station_info = { 'code' : args.station_code }
-        get_station_info(station_info)
-        doc = download_station_data(station_info, args.fmt, args.tstamp, args.hours, args.vlist)
-        
-        with open('%s_%s.%s' % (args.station_code, args.tstamp.strftime(tstamp_fmt), args.fmt), 'w') as f:
-            f.write(doc)
+        si = { 'code' : args.station_code }
+        get_station_info(si)
+        doc = download_station_data(si, args.fmt, args.tstamp, args.hours, args.vlist)
+
+        if args.info_fmt == 'loose':
+            with open('%s_%s.%s' % (args.station_code, args.tstamp.strftime(tstamp_fmt), args.fmt), 'w') as f:
+                f.write(doc)
+        else:
+            # read in standard observation variances
+            with open(args.obs_var_table, "r") as f:
+                obs_var_tbl = dict(map(lambda x: x.split(","), map(string.strip, f.readlines())))
+                for k,v in obs_var_tbl.iteritems():
+                    obs_var_tbl[k] = float(v)
+
+            obs = decode_obs_xls(doc)
+            write_plain_format(si['code'],obs,obs_var_tbl)
     else:
         sys.exit(1)
-        
+
